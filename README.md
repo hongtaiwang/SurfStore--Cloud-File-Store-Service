@@ -1,6 +1,4 @@
 # This is a simple distributed file storage system based on RPC
-# 
-
 Use the following commands to run the blockstore, metadata store and the client - 
 
 1. Blockstore - 
@@ -27,3 +25,6 @@ Use the following commands to run the blockstore, metadata store and the client 
    // to delete a file
    python client.py config.txt delete myfile.jpg
    ```
+
+
+Project code copyright (c) 2018 Hongtai Wang. All Rights Reserved.
