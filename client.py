@@ -115,11 +115,13 @@ class SurfStoreClient():
         v, hl = conn.root.exposed_read_file(filename)
         if v == 0:
             print('Not Found')
-            return -1
         else:
-            result = conn.root.exposed_delete_file(filename, v + 1)
-            # print(result)
-            return 0
+            v += 1
+            try:
+                result = conn.root.exposed_delete_file(filename, v)
+                print(result)
+            except ErrorResponse:
+                self.delete(filename)
 
     """
     download(filename, dst) : Downloads a file (f) from SurfStore and saves
@@ -128,9 +130,12 @@ class SurfStoreClient():
 
     def download(self, filename, location):
         # check local file
-        localpath = os.path.realpath(location + '/' + filename)
+        if location[-1] != '/':
+            location += '/'
+        localpath = os.path.realpath(location + filename)
         filehash = {}
         if os.path.isfile(localpath):
+            # print('file exist:', localpath)
             with open(localpath, 'rb') as f:
                 data = f.read()
                 length = len(data)
@@ -146,6 +151,7 @@ class SurfStoreClient():
                 except IndexError:
                     pass
         # read store to get hashlist
+        # print('filehash:', filehash)
         targethash = []
         conn = rpyc.connect(self.metadata_host, self.metadata_port)
         v, hl = conn.root.exposed_read_file(filename)
@@ -155,6 +161,7 @@ class SurfStoreClient():
             for b in hl:
                 if not filehash.get(b):
                     targethash.append(b)
+        # print('tar:', targethash)
 
         # connect to the block and get missing blocks
         hashfromblock = {}
@@ -169,11 +176,14 @@ class SurfStoreClient():
                 fresult += filehash[l]
             else:
                 fresult += hashfromblock[l]
-        fresult = fresult.decode()
+        # print('write:', fresult)
+        # fresult = fresult.decode()
         # write the file
-        result = open(localpath, 'w+')
+        result = open(localpath, 'wb')
         result.write(fresult)
         result.close()
+        print('OK')
+
 
     """
     Use eprint to print debug messages to stderr

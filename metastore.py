@@ -101,22 +101,19 @@ class MetadataStore(rpyc.Service):
     '''
     def exposed_delete_file(self, filename, version):
         e = ErrorResponse('err')
-        # file not found
         fversion = self.filesinstore[filename][0]
-        if not bool(self.filesinstore.get(filename)):
-            e.file_not_found()
-            # print(e.error)
-            raise e
         # file found but version err
-        elif version != (fversion + 1):
-            e.wrong_version_error(fversion)
-            # print(e.error)
-            raise e
         # delete file
-        else:
+        if version == (fversion + 1):
             self.filesinstore[filename] = [version]
             # print(self.filesinstore)
             return 'OK'
+        # file found but version err
+        else:
+            e.wrong_version_error(fversion)
+            # print(e.error)
+            raise e
+
 
 
     '''
@@ -131,20 +128,20 @@ class MetadataStore(rpyc.Service):
         # print('read..')
         # print('list', self.filesinstore)
         v = 0
-        # file was deleted
-        if not bool(self.filesinstore.get(filename)):
-            # print('no such file while read')
+        # no such file in the store
+        try:
+            self.filesinstore[filename]
+        except KeyError:
             return v, []
         # file exists
-        else:
-            # get version
-            v = self.filesinstore[filename][0]
-            if len(self.filesinstore[filename]) > 1:
-                hl = self.filesinstore[filename][1:]
-            else:  # file was deleted
-                hl = []
-            # print('file version:', v, 'hl:', hl)
-            return v, hl
+        # get version
+        v = self.filesinstore[filename][0]
+        if len(self.filesinstore[filename]) > 1:
+            hl = self.filesinstore[filename][1:]
+        else:  # file was deleted
+            hl = []
+        # print('file version:', v, 'hl:', hl)
+        return v, hl
 
 
 if __name__ == '__main__':
