@@ -19,11 +19,11 @@ Use the following commands to run the blockstore, metadata store and the client 
 
    ```shell
    // to download a file
-   python3 client.py mode config.txt download myfile.jpg folder_name/
+   python3 client.py <mode> config.txt download myfile.jpg folder_name/
    
    // to upload a file
-   python3 client.py mode config.txt upload myfile.jpg
+   python3 client.py <mode> config.txt upload myfile.jpg
    
    // to delete a file
-   python3 client.py mode config.txt delete myfile.jpg
+   python3 client.py <mode> config.txt delete myfile.jpg
    ```
