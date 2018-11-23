@@ -51,8 +51,9 @@ class MetadataStore(rpyc.Service):
             for i in range(self.numofblocks):
                 self.block[i] = (data[i].split()[1].split(b':')[0].decode('utf-8'),\
                                  int(data[i].split()[1].split(b':')[1]))
-                # print(self.block[i])
+                print(self.block[i])
         self.filesinstore = {}
+        self.hash_loc = {}
 
 
     '''
@@ -82,14 +83,15 @@ class MetadataStore(rpyc.Service):
         # check missing block
         missinghash = []
         if len(self.filesinstore[filename]) >= 1:
-            # print('exists, hl:', self.filesinstore[filename])
+            print('exists, hl:', self.filesinstore[filename])
             for h in hashlist:
-                if h not in self.filesinstore[filename]:
+                if h[0] not in self.filesinstore[filename]:
                     missinghash.append(h)
         # modify hashlist
         self.filesinstore[filename] = [version]
         for hashval in hashlist:
-            self.filesinstore[filename].append(hashval)
+            self.filesinstore[filename].append(hashval[0])
+            self.hash_loc[hashval[0]] = hashval[1]
         return missinghash
 
     '''
@@ -125,9 +127,10 @@ class MetadataStore(rpyc.Service):
         method as an RPC call
     '''
     def exposed_read_file(self, filename):
-        # print('read..')
+        print('read..')
         # print('list', self.filesinstore)
         v = 0
+        hl = []
         # no such file in the store
         try:
             self.filesinstore[filename]
@@ -137,10 +140,11 @@ class MetadataStore(rpyc.Service):
         # get version
         v = self.filesinstore[filename][0]
         if len(self.filesinstore[filename]) > 1:
-            hl = self.filesinstore[filename][1:]
+            for l in self.filesinstore[filename][1:]:
+                hl.append([l, self.hash_loc[l]])
         else:  # file was deleted
             hl = []
-        # print('file version:', v, 'hl:', hl)
+        print('file version:', v, 'hl:', hl)
         return v, hl
 
 

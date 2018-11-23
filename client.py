@@ -2,6 +2,7 @@ import rpyc
 import hashlib
 import os
 import sys
+import time
 
 """
 A client is a program that interacts with SurfStore. It is used to create,
@@ -31,6 +32,7 @@ class SurfStoreClient():
     """
 
     def __init__(self, config):
+        self.mode = 'N'
         configpath = os.path.realpath(config)
         if not os.path.isfile(configpath):
             print('Not Found')
@@ -50,8 +52,25 @@ class SurfStoreClient():
                 self.eprint('ERR! Fault Config')
 
 
-    def findserver(self, h):
+    def findserver_h(self, h):  # Hash placement
         return int(h, 16) % self.numofblocks
+
+    def findserver_n(self):  # Nearest to client
+        rtt = 9999
+        result = 0
+        for i in range(self.numofblocks):
+            stime = time.time()
+            conn = rpyc.connect(self.block[i][0], self.block[i][1])
+            conn.close()
+            etime = time.time()
+            tmp = etime - stime
+            if tmp < rtt:
+                rtt = tmp
+                result = i
+            print('server-', result)
+            return result
+
+
 
     """
     upload(filepath) : Reads the local file, creates a set of 
@@ -70,35 +89,44 @@ class SurfStoreClient():
             data = f.read()
             length = len(data)
             fileblocknum = length // 4096 if length % 4096 is 0 else length // 4096 + 1
-            filehash = {}
-            filehl = []
+            filehash = {}  # hashval: blockval
+            filehl = []  # [hashval,location]
+            blocknum = 0
+            if self.mode == 'n':
+                blocknum = self.findserver_n()
             for i in range(fileblocknum - 1):
                 fileblocks = data[i * 4096:(i + 1) * 4096]
                 hashval = hashlib.sha256(fileblocks).hexdigest()
-                filehl.append(hashval)
+                if self.mode == 'h':
+                    blocknum = self.findserver_h(hashval)
+                filehl.append([hashval, blocknum])
                 filehash[hashval] = fileblocks
             try:
                 fileblocks = data[(fileblocknum - 1) * 4096:]
                 hashval = hashlib.sha256(fileblocks).hexdigest()
-                filehl.append(hashval)
+                if self.mode == 'h':
+                    blocknum = self.findserver_h(hashval)
+                filehl.append([hashval, blocknum])
                 filehash[hashval] = fileblocks
             except IndexError:
                 pass
-        # print('block success! blocks:', filehash)
+        print('block success! blocks:', filehash, '\nhashloc:', filehl)
 
         # read file to get version
         conn = rpyc.connect(self.metadata_host, self.metadata_port)
         v, hl = conn.root.exposed_read_file(filename)
         v += 1
+        print('read success! ', v, hl)
 
         # upload hash
         try:
             missinghash = conn.root.exposed_modify_file(filename, v, filehl)
             # print('missinghash:',missinghash)
             for h in missinghash:
-                blocknum = self.findserver(h)
+                blocknum = h[1]
                 c = rpyc.connect(self.block[blocknum][0], self.block[blocknum][1])
-                c.root.exposed_store_block(h, filehash[h])
+                c.root.exposed_store_block(h[0], filehash[h[0]])
+                print(h)
             print('OK')
         except ErrorResponse:  # version err
             # print('woops! version err')
@@ -143,7 +171,7 @@ class SurfStoreClient():
                 for i in range(fileblocknum - 1):
                     fileblocks = data[i * 4096:(i + 1) * 4096]
                     hashval = hashlib.sha256(fileblocks).hexdigest()
-                    filehash[hashval] = [fileblocks, i]
+                    filehash[hashval] = fileblocks
                 try:
                     fileblocks = data[(fileblocknum - 1) * 4096:]
                     hashval = hashlib.sha256(fileblocks).hexdigest()
@@ -159,23 +187,23 @@ class SurfStoreClient():
             raise Exception('Not Found')
         else:
             for b in hl:
-                if not filehash.get(b):
+                if not filehash.get(b[0]):
                     targethash.append(b)
         # print('tar:', targethash)
 
         # connect to the block and get missing blocks
         hashfromblock = {}
         for h in targethash:
-            blocknum = self.findserver(h)
+            blocknum = h[1]
             c = rpyc.connect(self.block[blocknum][0], self.block[blocknum][1])
-            block = c.root.exposed_get_block(h)
-            hashfromblock[h] = block
+            block = c.root.exposed_get_block(h[0])
+            hashfromblock[h[0]] = block
         fresult = b''
         for l in hl:
-            if l in filehash:
-                fresult += filehash[l]
+            if l[0] in filehash:
+                fresult += filehash[l[0]]
             else:
-                fresult += hashfromblock[l]
+                fresult += hashfromblock[l[0]]
         # print('write:', fresult)
         # fresult = fresult.decode()
         # write the file
@@ -197,12 +225,13 @@ class SurfStoreClient():
 
 if __name__ == '__main__':
     client = SurfStoreClient(sys.argv[1])
-    operation = sys.argv[2]
+    client.mode = sys.argv[2]
+    operation = sys.argv[3]
     if operation == 'upload':
-        client.upload(sys.argv[3])
+        client.upload(sys.argv[4])
     elif operation == 'download':
-        client.download(sys.argv[3], sys.argv[4])
+        client.download(sys.argv[4], sys.argv[5])
     elif operation == 'delete':
-        client.delete(sys.argv[3])
+        client.delete(sys.argv[4])
     else:
         print("Invalid operation")

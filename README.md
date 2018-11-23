@@ -1,5 +1,7 @@
 # This is a simple distributed file storage system based on RPC
-Use the following commands to run the blockstore, metadata store and the client - 
+# 
+
+Use the following commands to run the blockstore, metadata store and the client (tap 'n' or 'h' to choose hash placement or nearest to client mode) - 
 
 1. Blockstore - 
 
@@ -17,14 +19,11 @@ Use the following commands to run the blockstore, metadata store and the client 
 
    ```shell
    // to download a file
-   python client.py config.txt download myfile.jpg folder_name/
+   python3 client.py mode config.txt download myfile.jpg folder_name/
    
    // to upload a file
-   python client.py config.txt upload myfile.jpg
+   python3 client.py mode config.txt upload myfile.jpg
    
    // to delete a file
-   python client.py config.txt delete myfile.jpg
+   python3 client.py mode config.txt delete myfile.jpg
    ```
-
-
-Project code copyright (c) 2018 Hongtai Wang. All Rights Reserved.
