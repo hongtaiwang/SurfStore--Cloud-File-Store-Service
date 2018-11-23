@@ -1,4 +1,4 @@
-# This is a simple distributed file storage system based on RPC
+# This is a distributed file storage system based on RPC
 # 
 
 Use the following commands to run the blockstore, metadata store and the client (tap 'n' or 'h' to choose hash placement or nearest to client mode) - 
