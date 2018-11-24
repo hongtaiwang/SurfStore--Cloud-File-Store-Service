@@ -67,8 +67,8 @@ class SurfStoreClient():
             if tmp < rtt:
                 rtt = tmp
                 result = i
-            print('server-', result)
-            return result
+        print('server-', result)
+        return result
 
 
 
@@ -110,13 +110,13 @@ class SurfStoreClient():
                 filehash[hashval] = fileblocks
             except IndexError:
                 pass
-        print('block success! blocks:', filehash, '\nhashloc:', filehl)
+        # print('block success! blocks:', filehash, '\nhashloc:', filehl)
 
         # read file to get version
         conn = rpyc.connect(self.metadata_host, self.metadata_port)
         v, hl = conn.root.exposed_read_file(filename)
         v += 1
-        print('read success! ', v, hl)
+        # print('read success! ', v, hl)
 
         # upload hash
         try:
